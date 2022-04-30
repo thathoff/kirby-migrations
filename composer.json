@@ -1,0 +1,15 @@
+{
+    "name": "thathoff/kirby-migrations",
+    "description": "Migrate content or databases when deploying your Kirby project",
+    "type": "kirby-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Markus Denhoff",
+            "email": "markus.denhoff@reinorange.com"
+        }
+    ],
+    "require": {
+        "getkirby/composer-installer": "^1.1"
+    }
+}
