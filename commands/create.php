@@ -2,16 +2,22 @@
 
 namespace Thathoff\KirbyMigrations;
 
-$migrator = new Migrator($kirby);
 
-$name = $argv[0] ?? null;
+namespace Thathoff\KirbyMigrations;
 
+use Kirby\CLI\CLI;
 
-if (!$name) {
-    echo "Usage: php cli.php create <name>\n";
-    exit(1);
-}
-
-$filename = $migrator->create($name);
-
-echo "Create migration: $filename\n";
+return [
+    'description' => 'Create a new migration',
+    'args' => [
+        'name' => [
+            'description' => 'The name of the new migration',
+            'required' => true,
+        ],
+    ],
+    'command' => static function (CLI $cli): void {
+        $migrator = new Migrator($cli);
+        $filename = $migrator->create($cli->arg('name'));
+        $cli->success("Created migration: $filename");
+    }
+];

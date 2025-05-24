@@ -3,6 +3,7 @@
 namespace Thathoff\KirbyMigrations;
 
 use Exception;
+use Kirby\CLI\CLI;
 use Kirby\Cms\App;
 
 class Migrator
@@ -11,6 +12,11 @@ class Migrator
      * The current Kirby instance
      */
     private App $kirby;
+
+    /**
+     * The current CLI instance
+     */
+    private CLI $cli;
 
     /**
      * List of applied migrations
@@ -32,15 +38,20 @@ class Migrator
     /**
      * Create a new migrator instance
      */
-    public function __construct(App $kirby)
+    public function __construct(CLI $cli)
     {
-        $this->kirby = $kirby;
+        $this->cli = $cli;
+
+        if (!$cli->kirby()) {
+            throw new Exception('Kirby instance not found. Please make sure Kirby CLI can initialize the Kirby instance.');
+        }
+        $this->kirby = $cli->kirby();
 
         // set directory for migrations
-        $this->migrationsDir = rtrim($kirby->option('thathoff.migrations.dir', $kirby->root('site') . '/migrations'), '/');
+        $this->migrationsDir = rtrim($this->kirby->option('thathoff.migrations.dir', $this->kirby->root('site') . '/migrations'), '/');
 
         // set state file from option
-        $this->stateFile = $kirby->option('thathoff.migrations.stateFile', $this->migrationsDir . '/.migrations');
+        $this->stateFile = $this->kirby->option('thathoff.migrations.stateFile', $this->migrationsDir . '/.migrations');
 
         // make sure state file is writeable
         if (!is_writable($this->stateFile) && !is_writable(dirname($this->stateFile))) {
@@ -177,7 +188,7 @@ class Migrator
             throw new Exception('Migration class is not a subclass of ' . Migration::class . ': ' . $className);
         }
 
-        return new $className($this->kirby);
+        return new $className($this->kirby, $this->cli);
     }
 
     private function getTemplate(string $name): string
