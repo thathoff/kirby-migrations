@@ -14,10 +14,10 @@ if (!count($pending)) {
 $force = in_array('-f', $argv);
 
 echo "The following migrations will be applied:\n";
-echo "  " . implode("\n  ", $pending) . "\n\n";
+echo '  ' . implode("\n  ", $pending) . "\n\n";
 
 if (!$force) {
-    $result = readline("Are you sure you want to continue? [y/N] ");
+    $result = readline('Are you sure you want to continue? [y/N] ');
 
     if (!$result || strtolower($result) == 'n') {
         echo "Aborting.\n";
@@ -26,4 +26,4 @@ if (!$force) {
 }
 
 $migrator->applyPendingMigrations();
-echo "Applied " . count($pending) . " migrations.\n";
+echo 'Applied ' . count($pending) . " migrations.\n";

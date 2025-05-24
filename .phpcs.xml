@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<ruleset name="reinorange" namespace="Thathoff\KirbyMigrations">
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <arg name="extensions" value="php" />
+    <arg name="basepath" value="."/>
+
+    <file>./</file>
+    <exclude-pattern type="relative">^(vendor)/*</exclude-pattern>
+
+
+    <rule ref="Squiz.Strings.DoubleQuoteUsage.NotRequired" />
+
+    <rule ref="Generic.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array">
+                <element key="is_null" value="null"/>
+            </property>
+        </properties>
+    </rule>
+
+    <rule ref="Generic.Formatting.SpaceAfterNot">
+        <properties>
+            <property name="spacing" value="0" />
+        </properties>
+    </rule>
+
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="200"/>
+            <property name="absoluteLineLimit" value="500"/>
+        </properties>
+    </rule>
+</ruleset>

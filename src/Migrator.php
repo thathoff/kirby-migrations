@@ -38,7 +38,7 @@ class Migrator
         $this->kirby = $kirby;
 
         // set directory for migrations
-        $this->migrationsDir = rtrim($kirby->option('thathoff.migrations.dir', $kirby->root('site') . '/migrations'), "/");
+        $this->migrationsDir = rtrim($kirby->option('thathoff.migrations.dir', $kirby->root('site') . '/migrations'), '/');
 
         // set state file from option
         $this->stateFile = $kirby->option('thathoff.migrations.stateFile', $this->migrationsDir . '/.migrations');
@@ -98,7 +98,7 @@ class Migrator
      */
     public function create($name)
     {
-        $name = "Migration" . date("YmdHis") . $this->normalizeName($name);
+        $name = 'Migration' . date('YmdHis') . $this->normalizeName($name);
 
         $filePath = $this->getMigrationFile($name);
         if (file_exists($filePath)) {
@@ -177,7 +177,7 @@ class Migrator
     private function getTemplate($name)
     {
         $template = file_get_contents(__DIR__ . '/../templates/Migration.php');
-        return str_replace("MigrationName", $name, $template);
+        return str_replace('MigrationName', $name, $template);
     }
 
     private function normalizeName($name)
@@ -189,7 +189,7 @@ class Migrator
         $name = trim($name);
 
         // convert name to camel case
-        $name = str_replace(["-", "_"], ' ', $name);
+        $name = str_replace(['-', '_'], ' ', $name);
         $name = ucwords($name);
         $name = str_replace(' ', '', $name);
 

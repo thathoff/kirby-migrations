@@ -14,10 +14,10 @@ if (!count($lastBatch)) {
 $force = in_array('-f', $argv);
 
 echo "The following migrations will be rolled back:\n";
-echo "  " . implode("\n  ", $lastBatch) . "\n\n";
+echo '  ' . implode("\n  ", $lastBatch) . "\n\n";
 
 if (!$force) {
-    $result = readline("Are you sure you want to continue? [y/N] ");
+    $result = readline('Are you sure you want to continue? [y/N] ');
 
     if (!$result || strtolower($result) == 'n') {
         echo "Aborting.\n";
@@ -26,4 +26,4 @@ if (!$force) {
 }
 
 $migrator->rollbackMigrations();
-echo "Rolled back " . count($lastBatch) . " migrations.\n";
+echo 'Rolled back ' . count($lastBatch) . " migrations.\n";

@@ -14,5 +14,13 @@
     },
     "extra": {
         "installer-name": "migrations"
+    },
+    "config": {
+        "allow-plugins": {
+            "getkirby/composer-installer": true
+        }
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.13"
     }
 }
