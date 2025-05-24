@@ -86,16 +86,20 @@ class Migration20250524144726InitDb extends Migration
 {
     public function up(): void
     {
-        Db::execute("CREATE TABLE `my_table` (
+        $result = Db::execute("CREATE TABLE `my_table` (
             id int NOT NULL,
             test varchar(255) NOT NULL,
             PRIMARY KEY (id)
         )");
+
+        if (!$result) throw Db::lastError();
     }
 
     public function down(): void
     {
-        Db::execute("DROP TABLE `my_table`");
+        $result = Db::execute("DROP TABLE `my_table`");
+
+        if (!$result) throw Db::lastError();
     }
 }
 ```
@@ -117,12 +121,16 @@ class Migration20250524150432AddNameToMyTable extends Migration
 {
     public function up(): void
     {
-        Db::execute("ALTER TABLE `my_table` ADD COLUMN `name` varchar(255) NOT NULL");
+        $result = Db::execute("ALTER TABLE `my_table` ADD COLUMN `name` varchar(255) NOT NULL");
+
+        if (!$result) throw Db::lastError();
     }
 
     public function down(): void
     {
-        Db::execute("ALTER TABLE `my_table` DROP COLUMN `name`");
+        $result = Db::execute("ALTER TABLE `my_table` DROP COLUMN `name`");
+
+        if (!$result) throw Db::lastError();
     }
 }
 ```
