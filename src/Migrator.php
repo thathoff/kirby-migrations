@@ -123,8 +123,10 @@ class Migrator
 
     /**
      * Run all pending migrations
+     *
+     * @return string[]
      */
-    public function applyPendingMigrations(): void
+    public function applyPendingMigrations(): array
     {
         // reset list of applied migrations
         $this->lastBatch = [];
@@ -135,19 +137,28 @@ class Migrator
             $migration = $this->getMigration($name);
             $this->applyMigration($migration);
         }
+
+        return $this->lastBatch ?? [];
     }
 
     /**
      * Rollback the last batch of migrations
+     *
+     * @param string[]|null $migrationsToRollback (optional), if provided, only roll back these migrations
+     *
+     * @return string[]
      */
-    public function rollbackMigrations(): void
+    public function rollbackMigrations(?array $migrationsToRollback = null): array
     {
-        $lastBatch = $this->getLastBatch();
-
-        foreach ($lastBatch as $name) {
+        $batchToRollback = $migrationsToRollback ?? $this->getLastBatch();
+        $rolledBack = [];
+        foreach ($batchToRollback as $name) {
             $migration = $this->getMigration($name);
             $this->rollbackMigration($migration);
+            $rolledBack[] = $migration->getName();
         }
+
+        return $rolledBack;
     }
 
     private function applyMigration(Migration $migration): void

@@ -7,6 +7,10 @@ use Kirby\CLI\CLI;
 return [
     'description' => 'Rollback the last batch of migrations',
     'args' => [
+        'migration' => [
+            'description' => 'Only roll back this specific migration.',
+            'required' => false,
+        ],
         'force' => [
             'description' => 'Run the migrations without asking for confirmation.',
             'prefix' => 'f',
@@ -17,16 +21,19 @@ return [
     ],
     'command' => static function (CLI $cli): void {
         $migrator = new Migrator($cli);
+        $migrationName = $cli->arg('migration');
 
-        $lastBatch = $migrator->getStatus('last_batch');
+        $migrationsToRollback = $migrationName?
+            [$migrationName] :
+            $migrator->getStatus('last_batch');
 
-        if (!count($lastBatch)) {
+        if (!count($migrationsToRollback)) {
             $cli->error('No migrations found to rollback.');
             return;
         }
 
         $cli->red()->bold('The following migration(s) will be rolled back:');
-        $cli->out('  ' . implode("\n  ", $lastBatch));
+        $cli->out('  ' . implode("\n  ", $migrationsToRollback));
         $cli->nl();
 
         if (!$cli->arg('force')) {
@@ -37,7 +44,7 @@ return [
             }
         }
 
-        $migrator->rollbackMigrations();
-        $cli->success('Rolled back ' . count($lastBatch) . ' migration(s).');
+        $rolledBackMigrations = $migrator->rollbackMigrations($migrationsToRollback);
+        $cli->success('Rolled back ' . count($rolledBackMigrations) . ' migration(s).');
     }
 ];

@@ -37,7 +37,7 @@ return [
             }
         }
 
-        $migrator->applyPendingMigrations();
-        $cli->success('Applied ' . count($pending) . ' migration(s).');
+        $applied = $migrator->applyPendingMigrations();
+        $cli->success('Applied ' . count($applied) . ' migration(s).');
     }
 ];
