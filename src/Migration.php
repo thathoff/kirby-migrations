@@ -7,7 +7,7 @@ use ReflectionClass;
 
 abstract class Migration
 {
-    protected $kirby;
+    protected App $kirby;
 
     public function __construct(App $kirby)
     {
@@ -19,9 +19,9 @@ abstract class Migration
         return (new ReflectionClass($this))->getShortName();
     }
 
-    abstract public function up();
+    abstract public function up(): void;
 
-    public function down()
+    public function down(): void
     {
         // this method is optional
     }

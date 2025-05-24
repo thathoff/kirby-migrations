@@ -1,0 +1,15 @@
+includes:
+parameters:
+  level: 8
+  paths:
+    - src
+    - commands
+    - templates
+    - index.php
+    - cli.php
+  ignoreErrors:
+    - '#Variable \$kirby might not be defined.#'
+    - '#Path in include\(\) "kirby/bootstrap.php" is not a file or it does not exist.#'
+  reportUnmatchedIgnoredErrors: false
+  bootstrapFiles:
+    - vendor/getkirby/cms/bootstrap.php

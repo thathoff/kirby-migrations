@@ -10,7 +10,7 @@ class MigrationName extends Migration
      *
      * @return void
      */
-    public function up()
+    public function up(): void
     {
         // do something
     }
@@ -21,7 +21,7 @@ class MigrationName extends Migration
      *
      * @return void
      */
-    public function down()
+    public function down(): void
     {
         // do something
     }

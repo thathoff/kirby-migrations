@@ -17,8 +17,7 @@ if (!file_exists('kirby/bootstrap.php')) {
     exit(1);
 }
 
-// init kirby
-require 'kirby/bootstrap.php';
+include 'kirby/bootstrap.php';
 $kirby = new Kirby();
 
 // get first parameter (command)
@@ -39,6 +38,11 @@ if ($command && file_exists($commandFile)) {
 echo "Command not found, available commands:\n";
 
 $commands = glob($commandsDir . '*.php');
+
+if (empty($commands)) {
+    echo "No commands found in $commandsDir\n";
+    exit(1);
+}
 
 foreach ($commands as $command) {
     $command = basename($command, '.php');
