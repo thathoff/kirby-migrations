@@ -12,6 +12,13 @@ load([
 Kirby::plugin('thathoff/migrations', [
     'options' => [
         'dir' => null,
-        'stateFile' => null,
+        'stateFile' => null
+    ],
+    'commands' => [
+        'migrations' => require __DIR__ . '/commands/status.php',
+        'migrations:apply' => require __DIR__ . '/commands/apply.php',
+        'migrations:create' => require  __DIR__ . '/commands/create.php',
+        'migrations:status' => require __DIR__ . '/commands/status.php',
+        'migrations:rollback' => require __DIR__ . '/commands/rollback.php',
     ],
 ]);

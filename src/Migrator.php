@@ -3,45 +3,55 @@
 namespace Thathoff\KirbyMigrations;
 
 use Exception;
+use Kirby\CLI\CLI;
 use Kirby\Cms\App;
 
 class Migrator
 {
     /**
      * The current Kirby instance
-     *
-     * @var App
      */
-    private $kirby;
+    private App $kirby;
+
+    /**
+     * The current CLI instance
+     */
+    private CLI $cli;
 
     /**
      * List of applied migrations
      *
-     * @var array
+     * @var string[]|null
      */
-    private $applied;
+    private ?array $applied = null;
 
     /**
-     * List of applied migrations
+     * List of applied migrations of last batch
      *
-     * @var array
+     * @var string[]|null
      */
-    private $lastBatch;
+    private ?array $lastBatch = null;
+
+    private string $migrationsDir;
+    private string $stateFile;
 
     /**
      * Create a new migrator instance
-     *
-     * @param App $kirby
      */
-    public function __construct(App $kirby)
+    public function __construct(CLI $cli)
     {
-        $this->kirby = $kirby;
+        $this->cli = $cli;
+
+        if (!$cli->kirby()) {
+            throw new Exception('Kirby instance not found. Please make sure Kirby CLI can initialize the Kirby instance.');
+        }
+        $this->kirby = $cli->kirby();
 
         // set directory for migrations
-        $this->migrationsDir = rtrim($kirby->option('thathoff.migrations.dir', $kirby->root('site') . '/migrations'), "/");
+        $this->migrationsDir = rtrim($this->kirby->option('thathoff.migrations.dir', $this->kirby->root('site') . '/migrations'), '/');
 
         // set state file from option
-        $this->stateFile = $kirby->option('thathoff.migrations.stateFile', $this->migrationsDir . '/.migrations');
+        $this->stateFile = $this->kirby->option('thathoff.migrations.stateFile', $this->migrationsDir . '/.migrations');
 
         // make sure state file is writeable
         if (!is_writable($this->stateFile) && !is_writable(dirname($this->stateFile))) {
@@ -54,9 +64,9 @@ class Migrator
      *
      * @param string $type (optional), any of the following: 'applied', 'missing', 'last_batch', 'pending'
      *
-     * @return array
+     * @return ($type is null ? array<"applied" | "missing" | "last_batch" | "pending", string[]> : string[])
      */
-    public function getStatus(?string $type = null)
+    public function getStatus(?string $type = null): array
     {
         $migrations = $this->getMigrations();
 
@@ -88,17 +98,19 @@ class Migrator
             return $statusOut;
         }
 
-        return $statusOut[$type] ?? null;
+        if (!isset($statusOut[$type])) {
+            throw new Exception('Invalid status type: ' . $type . '. Valid types are: ' . implode(', ', array_keys($statusOut)));
+        }
+
+        return $statusOut[$type];
     }
 
     /**
      * Create a new migration file
-     *
-     * @return string path to the new migration file
      */
-    public function create($name)
+    public function create(string $name): string
     {
-        $name = "Migration" . date("YmdHis") . $this->normalizeName($name);
+        $name = 'Migration' . date('YmdHis') . $this->normalizeName($name);
 
         $filePath = $this->getMigrationFile($name);
         if (file_exists($filePath)) {
@@ -112,9 +124,9 @@ class Migrator
     /**
      * Run all pending migrations
      *
-     * @return void
+     * @return string[]
      */
-    public function applyPendingMigrations(): void
+    public function applyPendingMigrations(): array
     {
         // reset list of applied migrations
         $this->lastBatch = [];
@@ -125,24 +137,31 @@ class Migrator
             $migration = $this->getMigration($name);
             $this->applyMigration($migration);
         }
+
+        return $this->lastBatch ?? [];
     }
 
     /**
      * Rollback the last batch of migrations
      *
-     * @return void
+     * @param string[]|null $migrationsToRollback (optional), if provided, only roll back these migrations
+     *
+     * @return string[]
      */
-    public function rollbackMigrations(): void
+    public function rollbackMigrations(?array $migrationsToRollback = null): array
     {
-        $lastBatch = $this->getLastBatch();
-
-        foreach ($lastBatch as $name) {
+        $batchToRollback = $migrationsToRollback ?? $this->getLastBatch();
+        $rolledBack = [];
+        foreach ($batchToRollback as $name) {
             $migration = $this->getMigration($name);
             $this->rollbackMigration($migration);
+            $rolledBack[] = $migration->getName();
         }
+
+        return $rolledBack;
     }
 
-    private function applyMigration(Migration $migration)
+    private function applyMigration(Migration $migration): void
     {
         $migration->up();
 
@@ -151,36 +170,48 @@ class Migrator
         $this->writeStatus();
     }
 
-    private function rollbackMigration(Migration $migration)
+    private function rollbackMigration(Migration $migration): void
     {
         $migration->down();
 
-        $this->applied = array_values(array_diff($this->applied, [$migration->getName()]));
-        $this->lastBatch = array_values(array_diff($this->lastBatch, [$migration->getName()]));
+        $this->applied = array_values(array_diff($this->getApplied(), [$migration->getName()]));
+        $this->lastBatch = array_values(array_diff($this->getLastBatch(), [$migration->getName()]));
         $this->writeStatus();
     }
 
-    private function getMigrationFile($name)
+    private function getMigrationFile(string $name): string
     {
         return $this->migrationsDir . '/' . $name . '.php';
     }
 
-    private function getMigration($name)
+    private function getMigration(string $name): Migration
     {
         $filePath = $this->getMigrationFile($name);
         require $filePath;
 
         $className = 'Thathoff\KirbyMigrations\\' . $name;
-        return new $className($this->kirby);
+
+        if (!class_exists($className)) {
+            throw new Exception('Migration class not found: ' . $className);
+        }
+
+        if (!is_subclass_of($className, Migration::class)) {
+            throw new Exception('Migration class is not a subclass of ' . Migration::class . ': ' . $className);
+        }
+
+        return new $className($this->kirby, $this->cli);
     }
 
-    private function getTemplate($name)
+    private function getTemplate(string $name): string
     {
-        $template = file_get_contents(__DIR__ . '/../templates/Migration.php');
-        return str_replace("MigrationName", $name, $template);
+        if (!$template = file_get_contents(__DIR__ . '/../templates/Migration.php')) {
+            throw new Exception('Migration template cannot be loaded.');
+        }
+
+        return str_replace('MigrationName', $name, $template);
     }
 
-    private function normalizeName($name)
+    private function normalizeName(string $name): string
     {
         // make sure name has no slashes
         $name = str_replace('/', '', $name);
@@ -189,21 +220,26 @@ class Migrator
         $name = trim($name);
 
         // convert name to camel case
-        $name = str_replace(["-", "_"], ' ', $name);
+        $name = str_replace(['-', '_'], ' ', $name);
         $name = ucwords($name);
         $name = str_replace(' ', '', $name);
 
         return $name;
     }
 
-    private function getMigrations()
+    /**
+     * @return string[]
+     */
+    private function getMigrations(): array
     {
         $migrations = [];
         $files = glob($this->migrationsDir . '/*.php');
 
-        foreach ($files as $file) {
-            $name = basename($file, '.php');
-            $migrations[] = $name;
+        if ($files) {
+            foreach ($files as $file) {
+                $name = basename($file, '.php');
+                $migrations[] = $name;
+            }
         }
 
         return $migrations;
@@ -215,30 +251,37 @@ class Migrator
         return in_array($name, $applied);
     }
 
+    /**
+     * @return string[]
+     */
     private function getApplied(): array
     {
         if ($this->applied === null) {
             $this->readStatusFile();
         }
 
-        return $this->applied;
+        return $this->applied ?? [];
     }
 
+    /**
+     * @return string[]
+     */
     private function getLastBatch(): array
     {
         if ($this->lastBatch === null) {
             $this->readStatusFile();
         }
 
-        return $this->lastBatch;
+        return $this->lastBatch ?? [];
     }
 
-    private function readStatusFile()
+    private function readStatusFile(): void
     {
         $data = [];
 
         if (file_exists($this->stateFile)) {
-            $data = json_decode(file_get_contents($this->stateFile), true);
+            $fileContent = file_get_contents($this->stateFile) ?: '[]';
+            $data = json_decode($fileContent, true) ?? [];
         }
 
         $this->applied = $data['applied'] ?? [];

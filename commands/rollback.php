@@ -2,28 +2,49 @@
 
 namespace Thathoff\KirbyMigrations;
 
-$migrator = new Migrator($kirby);
+use Kirby\CLI\CLI;
 
-$lastBatch = $migrator->getStatus('last_batch');
+return [
+    'description' => 'Rollback the last batch of migrations',
+    'args' => [
+        'migration' => [
+            'description' => 'Only roll back this specific migration.',
+            'required' => false,
+        ],
+        'force' => [
+            'description' => 'Run the migrations without asking for confirmation.',
+            'prefix' => 'f',
+            'longPrefix' => 'force',
+            'required' => false,
+            'noValue' => true,
+        ],
+    ],
+    'command' => static function (CLI $cli): void {
+        $migrator = new Migrator($cli);
+        $migrationName = $cli->arg('migration');
 
-if (!count($lastBatch)) {
-    echo "No migrations found to rollback.\n";
-    exit(0);
-}
+        $migrationsToRollback = $migrationName?
+            [$migrationName] :
+            $migrator->getStatus('last_batch');
 
-$force = in_array('-f', $argv);
+        if (!count($migrationsToRollback)) {
+            $cli->error('No migrations found to rollback.');
+            return;
+        }
 
-echo "The following migrations will be rolled back:\n";
-echo "  " . implode("\n  ", $lastBatch) . "\n\n";
+        $cli->red()->bold('The following migration(s) will be rolled back:');
+        $cli->out('  ' . implode("\n  ", $migrationsToRollback));
+        $cli->nl();
 
-if (!$force) {
-    $result = readline("Are you sure you want to continue? [y/N] ");
+        if (!$cli->arg('force')) {
+            $result = $cli->confirm('Are you sure you want to continue?');
+            if (!$result->confirmed()) {
+                $cli->error('Aborting.');
+                return;
+            }
+        }
 
-    if (!$result || strtolower($result) == 'n') {
-        echo "Aborting.\n";
-        exit(0);
+        $rolledBackMigrations = $migrator->rollbackMigrations($migrationsToRollback);
+        $cli->success('Rolled back ' . count($rolledBackMigrations) . ' migration(s).');
     }
-}
-
-$migrator->rollbackMigrations();
-echo "Rolled back " . count($lastBatch) . " migrations.\n";
+];
