@@ -7,6 +7,8 @@ This plugin provides commands to [Kirby CLI](https://github.com/getkirby/cli) fo
 Use cases are **database migrations** for your SQL database, **migrating content** or
 **creating pages** when deploying your Kirby page. See the [examples](#examples) section for more details.
 
+You can also create migrations for your own plugins. See the [Migrations for Plugins](#migrations-for-plugins) section for more details.
+
 ## Kirby CLI
 
 This plugin uses the [Kirby CLI](https://github.com/getkirby/cli) to run migrations.
@@ -63,6 +65,42 @@ When using the `-f` or `--force` flag, it will rollback the migrations without a
 ```bash
 ./vendor/bin/kirby migrations:rollback [-f|--force]
 ```
+
+## Migrations for Plugins
+
+Plugins can also have their own migrations. To support migrations in your plugin, you need to create a `migrations`
+folder in your plugin's root directory and enable migrations in your plugin's `index.php` file by setting the
+`migrations` option to `true`.
+
+```php
+use Kirby\Cms\App as Kirby;
+
+Kirby::plugin('example/test', [
+    'migrations' => true,
+]);
+```
+
+To use a different path, you can set the `migrations` option to the path to the migrations directory:
+
+```php
+use Kirby\Cms\App as Kirby;
+
+Kirby::plugin('example/test', [
+    'migrations' => __DIR__ . '/classes/migrations',
+]);
+```
+
+After this, you can create migrations for your plugin by using the `migrations:create` command and specifying the
+plugin ID (in the example above it’s `example/test`) as the second argument.
+
+It’s recommended to prefix your migration names with your plugins name to avoid conflicts with other plugins as
+all migrations are created in the same namespace.
+
+```bash
+./vendor/bin/kirby migrations:create <name> <plugin-id>
+```
+
+All other commands will automatically detect the plugin migrations and apply them accordingly.
 
 ## Examples
 

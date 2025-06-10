@@ -68,9 +68,10 @@ class Migrator
      */
     public function getStatus(?string $type = null): array
     {
-        $migrations = $this->getMigrations();
+        $migrations = $this->getAllMigrations();
 
         $statusOut = [
+            'migration_directories' => $this->getMigrationDirs(),
             'applied' => [],
             'missing' => [],
             'last_batch' => $this->getLastBatch(),
@@ -108,11 +109,11 @@ class Migrator
     /**
      * Create a new migration file
      */
-    public function create(string $name): string
+    public function create(string $name, string $pluginName = 'site'): string
     {
         $name = 'Migration' . date('YmdHis') . $this->normalizeName($name);
 
-        $filePath = $this->getMigrationFile($name);
+        $filePath = $this->getMigrationFilePath($name, $pluginName);
         if (file_exists($filePath)) {
             throw new Exception('Migration already exists');
         }
@@ -179,9 +180,23 @@ class Migrator
         $this->writeStatus();
     }
 
-    private function getMigrationFile(string $name): string
+    private function getMigrationFile(string $name): ?string
     {
-        return $this->migrationsDir . '/' . $name . '.php';
+        $allMigrations = array_flip($this->getAllMigrations());
+        return $allMigrations[$name] ?? null;
+    }
+
+    private function getMigrationFilePath(string $name, string $pluginName): string
+    {
+        $allMigrationFolders = $this->getMigrationDirs();
+
+        // check if plugin has a migrations directory
+        if (!isset($allMigrationFolders[$pluginName])) {
+            throw new Exception('Plugin ' . $pluginName . ' does not have a migrations directory. Enable migrations in the plugin to create a migration.');
+        }
+
+        $filePath = $allMigrationFolders[$pluginName] . '/' . $name . '.php';
+        return $filePath;
     }
 
     private function getMigration(string $name): Migration
@@ -228,17 +243,74 @@ class Migrator
     }
 
     /**
-     * @return string[]
+     * @return array<string, string>
      */
-    private function getMigrations(): array
+    private function getMigrationsFromDir(string $dir): array
     {
         $migrations = [];
-        $files = glob($this->migrationsDir . '/*.php');
+        $files = glob($dir . '/*.php');
 
-        if ($files) {
-            foreach ($files as $file) {
-                $name = basename($file, '.php');
-                $migrations[] = $name;
+        if (!$files) {
+            return $migrations;
+        }
+
+        foreach ($files as $file) {
+            $name = basename($file, '.php');
+            $migrations[$file] = $name;
+        }
+
+        return $migrations;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getAllMigrations(): array
+    {
+        $migrations = [];
+
+        foreach ($this->getMigrationDirs() as $dir) {
+            $migrations = array_merge($migrations, $this->getMigrationsFromDir($dir));
+        }
+
+        return $migrations;
+    }
+
+
+    /**
+     * @return array<string>
+     */
+    private function getMigrationDirs(): array
+    {
+        $pluginMigrations = $this->getPluginMigrationDirs();
+        $migrations = ['site' => $this->migrationsDir];
+
+        return array_merge($pluginMigrations, $migrations);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getPluginMigrationDirs(): array
+    {
+        $plugins = kirby()->plugins();
+        $migrations = [];
+
+        foreach ($plugins as $plugin) {
+            $options = $plugin->extends();
+
+            if (!isset($options['migrations'])) {
+                continue;
+            }
+
+            // use migrations dir from plugin is just true we assume the migrations dir by default
+            if ($options['migrations'] === true) {
+                $options['migrations'] = $plugin->root() . DIRECTORY_SEPARATOR . 'migrations';
+            }
+
+            // check if migrations dir exists
+            if (file_exists($options['migrations']) && is_dir($options['migrations'])) {
+                $migrations[$plugin->id()] = $options['migrations'];
             }
         }
 
