@@ -16,7 +16,7 @@ return [
         ],
         'plugin' => [
             'description' => 'The plugin to create the migration for',
-            'required' => false,
+            'defaultValue' => 'site',
         ],
     ],
     'command' => static function (CLI $cli): void {
