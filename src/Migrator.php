@@ -111,6 +111,8 @@ class Migrator
      */
     public function create(string $name, string $pluginName = 'site'): string
     {
+        if(empty($pluginName)) $pluginName = 'site';
+
         $name = 'Migration' . date('YmdHis') . $this->normalizeName($name);
 
         $filePath = $this->getMigrationFilePath($name, $pluginName);
